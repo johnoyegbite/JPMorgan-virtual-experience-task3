@@ -23,10 +23,22 @@ class Graph extends Component<IProps, {}> {
     const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
 
     const schema = {
-      stock: 'string',
-      top_ask_price: 'float',
-      top_bid_price: 'float',
-      timestamp: 'date',
+      /** Price (average) for stock ABC */
+      price_abc: "float",
+      /** Price (average) for stock DEF */
+      price_def: "float",
+      /** Ratio between "price_abc" and "price_def" */
+      ratio: "float",
+      /** ratio upper bound*/
+      upper_bound: "float",
+      /** ratio lower bound */
+      lower_bound: "float",
+      /** Data point that crosses either the upper or lower bounds
+       * if the data point does not crosses, nothing is registered and represented by "undefined"
+       */
+      trigger_alert: "float", 
+      /** Maximum timestamp between stock ABC and stock DEF */
+      timestamp: "date",
     };
 
     if (window.perspective && window.perspective.worker()) {
@@ -35,14 +47,22 @@ class Graph extends Component<IProps, {}> {
     if (this.table) {
       // Load the `table` in the `<perspective-viewer>` DOM reference.
       elem.load(this.table);
+      /** Assing the kind of Graph we want to visualize. 
+       *(i.e. "y_line" type in this case) 
+       */
       elem.setAttribute('view', 'y_line');
-      elem.setAttribute('column-pivots', '["stock"]');
+      /** Allows x-axis data point mappings */
       elem.setAttribute('row-pivots', '["timestamp"]');
-      elem.setAttribute('columns', '["top_ask_price"]');
+      /** y-axis data point mappings to use */
+      elem.setAttribute('columns', '["ratio", "upper_bound", "lower_bound", "trigger_alert"]');
+      /** Handle cases of duplicated data points and consolidate them as just one data point. */
       elem.setAttribute('aggregates', JSON.stringify({
-        stock: 'distinctcount',
-        top_ask_price: 'avg',
-        top_bid_price: 'avg',
+        price_abc: 'avg',
+        price_def: 'avg',
+        ratio: 'avg',
+        upper_bound: 'avg',
+        lower_bound: 'avg',
+        trigger_alert: 'avg',
         timestamp: 'distinct count',
       }));
     }
@@ -50,9 +70,9 @@ class Graph extends Component<IProps, {}> {
 
   componentDidUpdate() {
     if (this.table) {
-      this.table.update(
+      this.table.update([
         DataManipulator.generateRow(this.props.data),
-      );
+      ]);
     }
   }
 }
